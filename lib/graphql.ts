@@ -1,9 +1,11 @@
+import 'server-only';
+
 type GraphQLError = {
   message: string;
 };
 
 type GraphQLResponse<TData> = {
-  data?: TData;
+  data?: TData | null;
   errors?: GraphQLError[];
 };
 
@@ -11,20 +13,20 @@ function getGraphQLEndpoint(): string {
   const endpoint = process.env.WORDPRESS_GRAPHQL_URL;
 
   if (!endpoint) {
-    throw new Error("WORDPRESS_GRAPHQL_URL is not defined");
+    throw new Error('WORDPRESS_GRAPHQL_URL is not defined');
   }
   return endpoint;
 }
 
 export async function graphqlRequest<
   TData,
-  TVariables extends Record<string, unknown> = Record<string, never>,
+  TVariables extends object = Record<string, never>,
 >(query: string, variables?: TVariables): Promise<TData> {
   const response = await fetch(getGraphQLEndpoint(), {
-    method: "POST",
+    method: 'POST',
     headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
     },
     body: JSON.stringify({
       query,
@@ -43,19 +45,19 @@ export async function graphqlRequest<
   try {
     payload = (await response.json()) as GraphQLResponse<TData>;
   } catch {
-    throw new Error("Failed to parse GraphQL response as JSON");
+    throw new Error('Failed to parse GraphQL response as JSON');
   }
 
   if (payload.errors?.length) {
     throw new Error(
       `GraphQL request failed with errors: ${payload.errors
         .map((e) => e.message)
-        .join(", ")}`,
+        .join(', ')}`,
     );
   }
 
-  if (payload.data === undefined) {
-    throw new Error("GraphQL response is missing 'data' field");
+  if (payload.data === undefined || payload.data === null) {
+    throw new Error("GraphQL response is missing usable 'data'");
   }
 
   return payload.data;
