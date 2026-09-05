@@ -1,36 +1,227 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# WordPress Template News — Next.js
 
-## Getting Started
+Frontend headless do WordPress Template News, construído com Next.js, React e TypeScript.
 
-First, run the development server:
+O WordPress fornece conteúdo e dados editoriais por meio do WPGraphQL. O Next.js é responsável pela aplicação pública.
+
+## Stack
+
+- Next.js 16
+- React 19
+- TypeScript
+- App Router
+- React Compiler
+- Server Components por padrão
+- SCSS
+- CSS Modules
+- ESLint
+- npm
+- `fetch` nativo para GraphQL
+
+Integração com:
+
+- WordPress
+- WPGraphQL
+- WPGraphQL Content Blocks
+
+## Requisitos
+
+Para executar o projeto localmente:
+
+- Node.js compatível com a versão do Next.js utilizada pelo projeto
+- npm
+- uma instalação WordPress acessível pelo processo Next.js
+- WPGraphQL ativo
+- WPGraphQL Content Blocks ativo
+
+O WordPress pode rodar diretamente no host, em Docker ou em outro ambiente de desenvolvimento, desde que o endpoint GraphQL configurado seja acessível pelo servidor Next.js.
+
+## Instalação
+
+Instale as dependências:
+
+```bash
+npm install
+```
+
+Crie o arquivo de ambiente local a partir do exemplo:
+
+```bash
+cp .env.example .env.local
+```
+
+Configure a URL do endpoint GraphQL de acordo com o seu ambiente.
+
+## Variáveis de ambiente
+
+O projeto utiliza:
+
+```dotenv
+WORDPRESS_GRAPHQL_URL=http://localhost:8080/graphql
+```
+
+O valor acima é apenas um exemplo. Use o host e a porta correspondentes à sua instalação WordPress.
+
+O arquivo `.env.example` documenta as variáveis necessárias para executar o projeto.
+
+O arquivo `.env.local` contém a configuração efetiva da máquina local e não deve ser versionado.
+
+`WORDPRESS_GRAPHQL_URL` é usada apenas no servidor e, por isso, não utiliza o prefixo `NEXT_PUBLIC_`.
+
+## Desenvolvimento
+
+Inicie o servidor de desenvolvimento:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Por padrão, o Next.js disponibiliza a aplicação em:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```text
+http://localhost:3000
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+A porta pode ser alterada conforme a configuração do ambiente.
 
-## Learn More
+## Scripts
 
-To learn more about Next.js, take a look at the following resources:
+### Desenvolvimento
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm run dev
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Inicia o servidor de desenvolvimento do Next.js.
 
-## Deploy on Vercel
+### Lint
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+npm run lint
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Executa o ESLint.
+
+### Type check
+
+```bash
+npm run typecheck
+```
+
+Executa:
+
+```text
+tsc --noEmit
+```
+
+### Build
+
+```bash
+npm run build
+```
+
+Gera o build de produção.
+
+### Produção local
+
+```bash
+npm run start
+```
+
+Inicia a aplicação a partir de um build de produção já gerado.
+
+## Estrutura
+
+```text
+app/
+├── favicon.ico
+├── globals.scss
+├── layout.tsx
+├── page.module.scss
+└── page.tsx
+
+lib/
+├── graphql.ts
+└── home-foundation.ts
+```
+
+### `app/`
+
+Contém as rotas, layouts e estilos da aplicação usando o App Router.
+
+### `app/layout.tsx`
+
+Define o layout raiz e o documento HTML compartilhado pelas rotas.
+
+### `app/page.tsx`
+
+Implementa a rota `/`.
+
+A página é um Server Component assíncrono e consome dados do WordPress no servidor.
+
+### `app/globals.scss`
+
+Contém os estilos globais da aplicação.
+
+### `app/page.module.scss`
+
+Contém os estilos da página usando CSS Modules.
+
+### `lib/graphql.ts`
+
+Implementa o transporte GraphQL com `fetch` nativo.
+
+Responsabilidades:
+
+- obter o endpoint GraphQL pela variável de ambiente;
+- enviar requisições `POST`;
+- enviar query e variables;
+- validar erros HTTP;
+- validar a resposta JSON;
+- validar erros GraphQL;
+- retornar os dados tipados da operação.
+
+### `lib/home-foundation.ts`
+
+Contém a operação GraphQL usada pela página inicial.
+
+A consulta retorna cinco posts publicados com:
+
+```graphql
+databaseId
+title
+uri
+```
+
+## Integração com WordPress
+
+O fluxo de dados da página inicial é:
+
+```text
+Browser
+    ↓
+Next.js
+    ↓
+Server Component
+    ↓
+getHomeFoundationPosts()
+    ↓
+graphqlRequest()
+    ↓
+fetch()
+    ↓
+WPGraphQL
+    ↓
+WordPress
+```
+
+A chamada ao WPGraphQL é feita no servidor Next.js.
+
+O navegador não chama diretamente o WordPress para carregar o conteúdo inicial da página.
+
+## Segurança
+
+- `.env.local` não deve ser versionado.
+- Variáveis server-side não devem usar `NEXT_PUBLIC_` sem necessidade.
+- O frontend consome conteúdo público por meio de chamadas GraphQL não autenticadas.
+- Credenciais, secrets, drafts e conteúdo privado não devem ser expostos ao navegador.
