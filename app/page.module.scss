@@ -27,3 +27,28 @@
   margin: 1.5rem 0 0;
   line-height: 1.6;
 }
+
+.description {
+  max-width: 42rem;
+  margin: 1.5rem 0 0;
+  line-height: 1.6;
+}
+
+.posts {
+  display: grid;
+  gap: 1rem;
+  margin: 2rem 0 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: grid;
+    gap: 0.25rem;
+    padding: 1rem 0;
+    border-top: 1px solid #d9d9d9;
+  }
+
+  span {
+    font-size: 0.875rem;
+  }
+}
