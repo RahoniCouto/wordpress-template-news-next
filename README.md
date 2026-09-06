@@ -142,6 +142,7 @@ app/
 
 lib/
 ├── graphql.ts
+├── gutenberg.ts
 └── home-foundation.ts
 ```
 
@@ -181,9 +182,34 @@ Responsabilidades:
 - validar erros GraphQL;
 - retornar os dados tipados da operação.
 
+### `lib/gutenberg.ts`
+
+Contém a operação GraphQL para consultar uma Page Gutenberg por `databaseId` usando WPGraphQL Content Blocks.
+
+A consulta utiliza `editorBlocks(flat: true)` e retorna a representação flattened dos blocos com:
+
+```graphql
+__typename
+name
+clientId
+parentClientId
+```
+
+Para `core/column`, a operação também consulta o atributo atualmente necessário pelo frontend:
+
+```graphql
+attributes {
+  width
+}
+```
+
+`clientId` e `parentClientId` pertencem somente à resposta atual do WPGraphQL Content Blocks e servem para representar a hierarquia dos blocos. Eles não são IDs persistentes do domínio.
+
+A camada de dados não reconstrói a árvore Gutenberg, não aplica regras editoriais do WordPress e não reprocessa dados internos dos blocos WTN.
+
 ### `lib/home-foundation.ts`
 
-Contém a operação GraphQL usada pela página inicial.
+Contém a operação GraphQL usada pela página inicial atual.
 
 A consulta retorna cinco posts publicados com:
 
@@ -195,7 +221,9 @@ uri
 
 ## Integração com WordPress
 
-O fluxo de dados da página inicial é:
+As chamadas ao WPGraphQL são feitas no servidor Next.js por meio de `graphqlRequest()`.
+
+O fluxo atual da página inicial é:
 
 ```text
 Browser
@@ -215,9 +243,21 @@ WPGraphQL
 WordPress
 ```
 
-A chamada ao WPGraphQL é feita no servidor Next.js.
+A camada Gutenberg segue o mesmo transporte:
 
-O navegador não chama diretamente o WordPress para carregar o conteúdo inicial da página.
+```text
+Next.js
+    ↓
+getGutenbergPageByDatabaseId()
+    ↓
+graphqlRequest()
+    ↓
+WPGraphQL Content Blocks
+    ↓
+editorBlocks(flat: true)
+```
+
+O navegador não chama diretamente o WordPress para carregar o conteúdo inicial da aplicação.
 
 ## Segurança
 
