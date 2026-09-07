@@ -184,9 +184,15 @@ Responsabilidades:
 
 ### `lib/gutenberg.ts`
 
-Contém a operação GraphQL para consultar uma Page Gutenberg por `databaseId` usando WPGraphQL Content Blocks.
+Contém a operação GraphQL para consultar uma Page Gutenberg por `databaseId` usando WPGraphQL Content Blocks e o contrato editorial WTN exposto pelo companion plugin.
 
-A consulta utiliza `editorBlocks(flat: true)` e retorna a representação flattened dos blocos com:
+A função pública atual é:
+
+```ts
+getGutenbergPage(databaseId);
+```
+
+A consulta utiliza `editorBlocks(flat: true)` e mantém a representação flattened dos blocos com:
 
 ```graphql
 __typename
@@ -195,17 +201,34 @@ clientId
 parentClientId
 ```
 
-Para `core/column`, a operação também consulta o atributo atualmente necessário pelo frontend:
+Para `core/column`, a operação consulta o field Headless barato registrado pelo companion:
 
 ```graphql
-attributes {
-  width
-}
+width
 ```
+
+Ela não utiliza `attributes.width`, evitando o caminho automático de attributes do WPGraphQL Content Blocks que pode renderizar containers e seus descendentes.
+
+Os seis blocos WTN consultam o field `resolved`, que já contém os valores efetivos definidos pelo WordPress após seleção editorial, elegibilidade, deduplicação e aplicação de overrides.
+
+Como os seis tipos `resolved` possuem contratos diferentes, a operação usa aliases apenas no wire GraphQL. A camada de dados normaliza esses aliases para uma única propriedade pública:
+
+```text
+GraphQL wire
+newsSectionResolved / latestNewsResolved / ...
+        ↓
+lib/gutenberg.ts
+        ↓
+block.resolved
+```
+
+O restante da aplicação não depende dos nomes dos aliases usados na query.
+
+Os tipos TypeScript modelam os dados resolvidos de imagem, categoria, matéria, autor e de cada WTN conforme o schema GraphQL atual. A camada não recebe nem recria regras editoriais internas como `postOverrides`, `resolvedPostIds`, `selectionMode` ou `slotPostIds`.
 
 `clientId` e `parentClientId` pertencem somente à resposta atual do WPGraphQL Content Blocks e servem para representar a hierarquia dos blocos. Eles não são IDs persistentes do domínio.
 
-A camada de dados não reconstrói a árvore Gutenberg, não aplica regras editoriais do WordPress e não reprocessa dados internos dos blocos WTN.
+A camada de dados ainda não reconstrói a árvore Gutenberg e não renderiza blocos React. Essas responsabilidades pertencem ao renderer da aplicação.
 
 ### `lib/home-foundation.ts`
 
@@ -248,14 +271,22 @@ A camada Gutenberg segue o mesmo transporte:
 ```text
 Next.js
     ↓
-getGutenbergPageByDatabaseId()
+getGutenbergPage(databaseId)
     ↓
 graphqlRequest()
     ↓
 WPGraphQL Content Blocks
+    +
+contrato WTN do companion
     ↓
 editorBlocks(flat: true)
+    ↓
+CoreColumn.width + WTN resolved
+    ↓
+normalização para block.resolved
 ```
+
+A seleção editorial permanece integralmente no WordPress. O Next.js recebe apenas os valores efetivos necessários para apresentação e não procura substitutos, não reaplica overrides e não refaz deduplicação.
 
 O navegador não chama diretamente o WordPress para carregar o conteúdo inicial da aplicação.
 
@@ -265,3 +296,4 @@ O navegador não chama diretamente o WordPress para carregar o conteúdo inicial
 - Variáveis server-side não devem usar `NEXT_PUBLIC_` sem necessidade.
 - O frontend consome conteúdo público por meio de chamadas GraphQL não autenticadas.
 - Credenciais, secrets, drafts e conteúdo privado não devem ser expostos ao navegador.
+- Regras e configuração editorial interna dos WTN, como `postOverrides`, `resolvedPostIds`, `selectionMode` e `slotPostIds`, não fazem parte do contrato público consumido pelo Next.js.
